@@ -1,0 +1,60 @@
+from flask import Flask, jsonify, request, Response
+import os
+from supabase import create_client, Client
+from db import insert, schools
+from functions import apply, createContest
+
+url: str = os.environ['SUPABASE_URL']
+key: str = os.environ['SUPABASE_KEY']
+supabase: Client = create_client(url, key)
+
+app = Flask('app')
+
+
+@app.route('/')
+def hello_world():
+  return "Server is running"
+
+
+@app.route('/schools')
+def get_schools():
+  response = schools()
+  print(f"response: {response}")
+  data = response
+  # Serialize the data into JSON
+  serialized_data = jsonify(data)
+  return serialized_data
+
+
+@app.route('/school/<string:id>', methods=['GET'])
+def get_school(id):
+  response = schools(id)
+  print(f"response: {response}")
+  data = response
+  # Serialize the data into JSON
+  serialized_data = jsonify(data)
+  return serialized_data
+
+@app.route('/contests', methods=['POST'])
+def add_contest(id) -> Response:
+  createContest(id)
+  return Response(status=200)
+  
+
+@app.route('/apply/<string:id>', methods=['POST'])
+def add_student(id) -> Response:
+  apply(id)
+  return Response(status=200)
+
+
+@app.route('/accepted/<string:id>', methods=['GET'])
+def get_accepted_students(id) -> Response:
+  response = supabase.table('students').select("*").eq('school_id', id).eq(
+      'classified', True).execute().data
+  data = response
+  # Serialize the data into JSON
+  serialized_data = jsonify(data)
+  return serialized_data
+
+
+app.run(host='0.0.0.0', port=8080)
